@@ -1,3 +1,4 @@
 .idea
 virenv
 orders.db
+__pycache__/
