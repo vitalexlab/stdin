@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from database import ContractDBModel, ProjectDBModel, engine
+from .database import ContractDBModel, ProjectDBModel
 
 
 class CRUDManager:

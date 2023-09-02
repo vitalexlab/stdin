@@ -6,8 +6,8 @@ from sqlalchemy import create_engine
 Base = declarative_base()
 
 db_name = 'orders.db'
-connection = f'sqlite:///{db_name}'
-engine = create_engine(connection, echo=True)
+connection = 'sqlite:///{}'
+engine = create_engine(connection.format(db_name), echo=True)
 
 
 class ContractDBModel(Base):
