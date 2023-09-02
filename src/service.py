@@ -1,26 +1,30 @@
-from src.schemas import Order, Project
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError, NoResultFound
 
+from database import engine
+from src.manager import ProjectCRUDManager
 
-def get_object_by_input(input_data: int) -> tuple | None | int:
+if __name__ == '__main__':
+    name = 'new_proj131'
+    session = sessionmaker(bind=engine)()
     try:
-        initial_input = int(input_data)
-    except ValueError:
-        print("Введите число, пожалуйста!")
-        return None
-    if initial_input == 0:
-        print('Спасибо, всего хорошего!')
-        return 0
-    elif initial_input > 2 or initial_input < 0:
-        print('Введите корректное число!')
-    return (Order, 'Договор') if initial_input == 1 else (Project, 'Проект')
+        proj_instance = ProjectCRUDManager(session)
+        # proj_orm_create = proj_instance.create(name=name)
+        # print(proj_orm_create.project_name)
+        # session.refresh(proj_orm_create)
+        # proj_orm_get_by_name = proj_instance.get_by_name(query_name=name)
+        # print(proj_orm_get_by_name.project_name)
+        # proj_orm_create = proj_instance.create(name='sfvsfdvsd')
+        proj_orm_get_all = proj_instance.get_all()
+        print([x.id_project for x in proj_orm_get_all])
+        # proj_orm_update = proj_instance.change_name(old_name=name, new_name='124')
+        # print(proj_orm_update.project_name)
+        # proj_orm_delete = proj_instance.remove_by_name(query_name='124')
+        # print(proj_orm_delete)
+    except IntegrityError:
+        print('Such contract already exists')
 
-
-def get_approve_status():
-    is_approved = input('Подтвердите создание договора [Y/n]')
-    status = None
-    while status is None:
-        if is_approved != 'Y':
-            print('Введите корректное значение - Y или n!')
-            continue
-        status = False if is_approved == 'n' else True
-    return status
+    # except Exception as e:
+    #     print(f'Error accessing contract attributes: {str(e)}')
+    finally:
+        session.close()
