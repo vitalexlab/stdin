@@ -3,7 +3,6 @@ from typing import Type, Union
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from src.database import ContractDBModel, ProjectDBModel
 
@@ -109,7 +108,7 @@ class ContractCRUDManager(CRUDManager):
             )
         active_contract_count = self.session.query(
             func.count(ContractDBModel.id_contract)).filter(
-            ContractDBModel.is_active == True,
+            ContractDBModel.is_active is True,
             ContractDBModel.project.has(
                 ProjectDBModel.project_name == project_name)
         ).scalar()
@@ -121,7 +120,8 @@ class ContractCRUDManager(CRUDManager):
             project_name=project_name).one()
         contract_instance.project = project_record
         print(
-            f"Active Contract Count in '{project_name}': {active_contract_count}")
+            f"Active Contract Count in '{project_name}':"
+            f" {active_contract_count}")
         self.session.commit()
         return contract_instance
 

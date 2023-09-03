@@ -4,7 +4,7 @@ import time
 from sqlite3 import IntegrityError
 
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlalchemy.exc import NoResultFound
 
 from src.database import engine, db_name
 
@@ -88,7 +88,7 @@ def test_create_contract_negative(db_engine):
     session = get_session(db_engine=db_engine)
     manager = ContractCRUDManager(session)
     try:
-        contract = manager.create(name=name)
+        manager.create(name=name)
     except IntegrityError:
         assert 1 == 1
 
@@ -124,7 +124,7 @@ def test_foreign_key_positive(db_engine):
     project = project_manager.create('project_name')
     contract_manager = ContractCRUDManager(session)
     contract = contract_manager.get_all()[0]
-    contract_with_project = contract_manager.set_project_by_name(
+    contract_manager.set_project_by_name(
         contract_name=contract.contract_name,
         project_name=project.project_name)
     print('Test foreign key positive passed')
@@ -133,7 +133,7 @@ def test_foreign_key_positive(db_engine):
 def test_foreign_key_negative(db_engine):
     session = get_session(db_engine=db_engine)
     contract_manager = ContractCRUDManager(session)
-    c = contract_manager.set_project_by_name(
+    contract_manager.set_project_by_name(
         contract_name='contract',
         project_name='sdfsdfsdfds')
     assert contract_manager.get_by_name('contract').project_id is None

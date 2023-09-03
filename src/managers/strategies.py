@@ -106,7 +106,8 @@ class StrategyBaseManager:
                 return data
 
     def delete(self):
-        inter_str = f'Insert a name of a {self.manager.object_name} to delete: '
+        inter_str = (f'Insert a name of a {self.manager.object_name} '
+                     f'to delete: ')
         object_name = input(inter_str)
         try:
             self.manager.remove_by_name(query_name=object_name)
@@ -209,13 +210,13 @@ class StrategyContract(StrategyBaseManager):
             except IntegrityError:
                 print('A contract could be set to only one project')
 
-
     def _get_action(self, choice, contract_name=None):
         try:
             if choice == 1:
                 action = self._change_name()
             elif choice > 1:
                 action = self._change_status(choice=choice, contract_name=None)
+            return action
         except AttributeError as ae:
             print(get_dashed())
             print('')
@@ -224,8 +225,8 @@ class StrategyContract(StrategyBaseManager):
         except NoResultFound:
             print(get_dashed())
             print('')
-            print(f"There is not a contract or project with such name!"
-                  f" Aborting!")
+            print("There is not a contract or project with such name!"
+                  " Aborting!")
 
 
 class StrategyProject(StrategyBaseManager):
@@ -236,7 +237,7 @@ class StrategyProject(StrategyBaseManager):
     def check_active_contracts(self):
         active_contract_count = self.session.query(
             func.count(ContractDBModel.id_contract)).filter(
-            ContractDBModel.is_active == True
+            ContractDBModel.is_active is True
         ).scalar()
         if active_contract_count >= 1:
             return True
@@ -290,5 +291,5 @@ class StrategyProject(StrategyBaseManager):
         except NoResultFound:
             print(get_dashed())
             print('')
-            print(f"There is not a contract or project with such name!"
-                  f" Aborting!")
+            print("There is not a contract or project with such name!"
+                  " Aborting!")

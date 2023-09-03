@@ -4,7 +4,7 @@ import time
 from sqlite3 import IntegrityError
 
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlalchemy.exc import NoResultFound
 
 from src.database import engine, db_name
 
@@ -88,7 +88,7 @@ def test_create_contract_negative(db_engine):
     session = get_session(db_engine=db_engine)
     manager = ProjectCRUDManager(session)
     try:
-        contract = manager.create(name=name)
+        manager.create(name=name)
     except IntegrityError:
         assert 1 == 1
 
