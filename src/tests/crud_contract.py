@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from src.database import engine, db_name
 
-from src.manager import ContractCRUDManager
+from src.managers import ContractCRUDManager, ProjectCRUDManager
 
 
 def delete_test_db(filename: str):
@@ -118,6 +118,28 @@ def test_change_contract_name_negative(db_engine):
         assert 1 == 1
 
 
+def test_foreign_key_positive(db_engine):
+    session = get_session(db_engine=db_engine)
+    project_manager = ProjectCRUDManager(session)
+    project = project_manager.create('project_name')
+    contract_manager = ContractCRUDManager(session)
+    contract = contract_manager.get_all()[0]
+    contract_with_project = contract_manager.set_project_by_name(
+        contract_name=contract.contract_name,
+        project_name=project.project_name)
+    print('Test foreign key positive passed')
+
+
+def test_foreign_key_negative(db_engine):
+    session = get_session(db_engine=db_engine)
+    contract_manager = ContractCRUDManager(session)
+    c = contract_manager.set_project_by_name(
+        contract_name='contract',
+        project_name='sdfsdfsdfds')
+    assert contract_manager.get_by_name('contract').project_id is None
+    print('Test foreign key negative passed')
+
+
 if __name__ == '__main__':
 
     try:
@@ -129,15 +151,17 @@ if __name__ == '__main__':
         test_create_contract_negative(db_engine=engine)
         test_get_contract_by_name_negative(db_engine=engine)
         test_change_contract_name_negative(db_engine=engine)
-
-        time.sleep(5)
+        test_foreign_key_positive(db_engine=engine)
+        test_foreign_key_negative(db_engine=engine)
     except Exception as exc:
         print('')
         print('Exception occured!!!!!!')
         print('')
         print(exc)
-    finally:
+    else:
         print('')
         print('Contract tests successfully passed!!!!!!')
         print('')
+    finally:
+        time.sleep(1)
         delete_test_db(db_name)

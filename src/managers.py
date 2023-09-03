@@ -62,6 +62,8 @@ class ContractCRUDManager(CRUDManager):
         instance = self.session_query.filter_by(contract_name=contract_name)
         project_record = self.session.query(ProjectDBModel).filter_by(
             project_name=project_name)
+        if project_record.count() == 0:
+            raise AttributeError('Project name is incorrect or not exist')
         instance.project = project_record
         self.session.commit()
         return instance
