@@ -44,6 +44,9 @@ class MainLoop:
         print('')
 
     def run(self):
-        self._greeting()
-        strategy = self._choose_strategy()
-        strategy.run()
+        try:
+            self._greeting()
+            strategy = self._choose_strategy()
+            strategy.run()
+        except AttributeError:
+            pass

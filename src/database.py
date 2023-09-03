@@ -27,8 +27,10 @@ class ContractDBModel(Base):
     def __repr__(self):
         return f"Contract '{self.contract_name}'"
 
+    @property
     def get_name(self):
         return self.contract_name
+
 
 class ProjectDBModel(Base):
     __tablename__ = 'order_project'

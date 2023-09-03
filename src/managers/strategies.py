@@ -9,20 +9,45 @@ from src.utils import get_dashed
 
 class StrategyBaseManager:
 
+    def _should_finish(self, choice) -> bool:
+        if choice is None or choice == '0':
+            return True
+        else:
+            return False
+
     def _get_action(self, choice, manager):
-        get_old_name_text = "Insert old name: "
-        get_new_name_text = "Insert new name: "
-        if choice == 1:
-            old_name = input(get_old_name_text)
-            new_name = input(get_new_name_text)
-            return manager.change_name(old_name=old_name, new_name=new_name)
-        elif choice == 2:
-            project_name = input("Insert valid project name: ")
-            contract_name = input("Insert valid contract name: ")
-            return manager.set_project_by_name(
-                project_name=project_name,
-                contract_name=contract_name
-            )
+        try:
+            get_old_name_text = "Insert old name: "
+            get_new_name_text = "Insert new name: "
+            if choice == 1:
+                old_name = input(get_old_name_text)
+                new_name = input(get_new_name_text)
+                action = manager.change_name(
+                    old_name=old_name, new_name=new_name
+                )
+                print(f"Name has changed form the '{old_name}' "
+                      f"to the '{new_name}'")
+                return action
+            elif choice == 2:
+                project_name = input("Insert valid project name: ")
+                contract_name = input("Insert valid contract name: ")
+                action = manager.set_project_by_name(
+                    project_name=project_name,
+                    contract_name=contract_name
+                )
+                print(f"The project '{project_name}' was "
+                      f"attached to the '{contract_name}'")
+                return action
+        except AttributeError:
+            print(get_dashed())
+            print('')
+            print(f"There is not a contract or project with such name!"
+                  f" Aborting!")
+        except NoResultFound:
+            print(get_dashed())
+            print('')
+            print(f"There is not a contract or project with such name!"
+                  f" Aborting!")
 
     def _get_db_session(self):
         return sessionmaker(bind=engine)()
@@ -53,35 +78,53 @@ class StrategyBaseManager:
             instance_name = input(
                 f'Insert name of a {self.manager.object_name} or 0 to exit: '
             )
-            if not bool(instance_name) or instance_name == '0':
+            if self._should_finish(instance_name):
                 break
             try:
                 instance = self.manager.get_by_name(query_name=instance_name)
-                return instance.get_name()
+                print(instance)
+                return instance
             except NoResultFound:
                 print('')
                 print('Sorry, there is not any objects with such name')
                 print('')
 
     def get_all(self):
-        return self.manager.get_all()
+        queryset = self.manager.get_all()
+        print(queryset)
+        return queryset
 
     def change(self):
-        contract_request_action = ("Choose 1 to change name or choose 2 to "
-                                   "set an existing project")
-        if issubclass(self.manager_obj, ContractCRUDManager):
-            contr_change_choice = input(contract_request_action)
-            return self._get_action(
-                choice=contr_change_choice,
-                manager=self.manager
-            )
-        else:
-            return self._get_action(choice=1, manager=self.manager)
+        while True:
+            contract_request_action = ("Choose 1 to change name or choose"
+                                       " 2 to set an existing project. "
+                                       "(Type 0 to finish): ")
+            change_choice = input(contract_request_action)
+            if self._should_finish(contract_request_action):
+                break
+            elif int(change_choice) == 1 or int(change_choice) == 2:
+                if issubclass(self.manager_obj, ContractCRUDManager):
+
+                    return self._get_action(
+                        choice=int(change_choice),
+                        manager=self.manager
+                    )
+                else:
+                    return self._get_action(choice=1, manager=self.manager)
+            else:
+                print('Insert a valid option')
 
     def delete(self):
         inter_str = f'Insert a name of a {self.manager.object_name} to delete: '
         object_name = input(inter_str)
-        return self.manager.remove_by_name(query_name=object_name)
+        try:
+            self.manager.remove_by_name(query_name=object_name)
+            print(f"{self.manager.object_name.capitalize()} with "
+                  f"name {object_name} was deleted")
+        except NoResultFound:
+            print(get_dashed())
+            print('')
+            print(f"No {self.manager.object_name} was found to delete")
 
     def _run_action_by_choice(self, choice: int):
         choices_actions = {
@@ -107,16 +150,20 @@ class StrategyBaseManager:
             'finish. Your choice: ')
         print(get_dashed())
         while True:
-            action: int = int(input(main_action_text))
-            if action == 0:
-                break
-            elif 5 >= action >= 1:
-                self._run_action_by_choice(choice=action)
-                self.session.close()
-                print('Console program session have finished!')
-                print(get_dashed())
-                break
-            else:
+            try:
+                action: int = int(input(main_action_text))
+                if action == 0:
+                    break
+                elif 5 >= action >= 1:
+                    self._run_action_by_choice(choice=action)
+                    self.session.close()
+                    print('Console program session have finished!')
+                    print(get_dashed())
+                    break
+                else:
+                    click.echo('Insert a correct answer')
+                    continue
+            except ValueError:
                 click.echo('Insert a correct answer')
                 continue
 
