@@ -1,3 +1,7 @@
+from datetime import datetime
+from typing import Type, Union
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.database import ContractDBModel, ProjectDBModel
@@ -18,14 +22,22 @@ class CRUDManager:
 
     def create(self, name: str):
         orm_instance = self.get_model_instance(name[:200])
+        orm_instance.created_at = datetime.now()
         self.session.add(orm_instance)
         self.session.commit()
         return orm_instance
 
-    def get_by_name(self, query_name: str):
+    def get_by_name(
+            self,
+            query_name: str
+    ) -> Type[Union[ContractDBModel, ProjectDBModel]]:
         if issubclass(self.model_class, ContractDBModel):
-            return self.session_query.filter_by(contract_name=query_name).one()
-        return self.session_query.filter_by(project_name=query_name).one()
+            qs = self.session_query.filter_by(contract_name=query_name).first()
+        else:
+            qs = self.session_query.filter_by(project_name=query_name).first()
+        if not qs:
+            raise AttributeError('There is no data with such name')
+        return qs
 
     def get_all(self):
         return self.session_query.all()
@@ -64,15 +76,26 @@ class ContractCRUDManager(CRUDManager):
         self.model_class = ContractDBModel
         self.session_query = self.session.query(self.model_class)
 
-    def set_project_by_name(self, contract_name, project_name):
-        instance = self.session_query.filter_by(contract_name=contract_name)
-        project_record = self.session.query(ProjectDBModel).filter_by(
-            project_name=project_name)
-        if project_record.count() == 0:
-            raise AttributeError('Project name is incorrect or not exist')
-        instance.project = project_record
-        self.session.commit()
+    def approve_by_name(self, contract_name: str):
+        instance: Type[ContractDBModel] = self.session_query.filter_by(
+            contract_name=contract_name
+        ).one()
+        if instance.is_active or instance.is_finished:
+            raise AttributeError('Contract has already approved')
+        elif instance.is_draft:
+            instance.sign_at = datetime.now()
+            instance.is_draft, instance.is_active = False, True
+            self.session.commit()
+            self.session.close()
         return instance
+
+    def sign_by_name(self, contract_name: str):
+        inst = self.session_query.filter_by(contract_name=contract_name).one()
+        inst.sign_at, inst.is_finished = datetime.now(), True
+        inst.is_active = False
+        self.session.commit()
+        self.session.close()
+        return inst
 
 
 class ProjectCRUDManager(CRUDManager):
@@ -80,3 +103,40 @@ class ProjectCRUDManager(CRUDManager):
         super().__init__(db_session)
         self.model_class = ProjectDBModel
         self.session_query = self.session.query(self.model_class)
+
+    def set_contract_by_name(self, contract_name: str, project_name: str):
+        contract_instance: Type[ContractDBModel] = self.session.query(
+            ContractDBModel
+        ).filter_by(contract_name=contract_name).one()
+        if contract_instance.is_draft or contract_instance.is_finished:
+            raise AttributeError(
+                'Only active contracts could be used to link with projects'
+            )
+        project_record = self.session.query(ProjectDBModel).filter_by(
+            project_name=project_name).one()
+        project_contracts_count = self.session.query(
+            ProjectDBModel,
+            func.count(ContractDBModel.id_contract).label('contract_count')
+        ).outerjoin(
+            ContractDBModel
+        ).group_by(
+            ProjectDBModel
+        ).having(func.count(ContractDBModel.id_contract) < 1)
+        contract_instance.project = project_record
+        self.session.commit()
+        return contract_instance
+
+    def finish_contract(self, contract_name: str, project_name: str):
+        inst = self.session_query.filter_by(project_name=project_name).one()
+        for contract in inst.contracts:
+            print(contract)
+            if contract.contract_name == contract_name:
+                contract.is_finished = True
+                contract.is_active = False
+                self.session.commit()
+                self.session.close()
+            else:
+                raise AttributeError(
+                    f"Such contract '{contract_name}'does not related to the "
+                    f"project '{project_name}'"
+                )

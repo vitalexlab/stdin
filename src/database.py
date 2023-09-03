@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, \
+    UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
@@ -20,12 +21,20 @@ class ContractDBModel(Base):
     sign_at = Column('sign_at', DateTime, nullable=True)
     is_draft = Column('is_draft', Boolean, nullable=False, default=True)
     is_active = Column('is_active', Boolean, nullable=False, default=False)
-    is_approved = Column('is_approved', Boolean, nullable=False, default=False)
+    is_finished = Column('is_approved', Boolean, nullable=False, default=False)
     project_id = Column('project_id', Integer,
                         ForeignKey('order_project.id_project'))
 
+    __table_args__ = (UniqueConstraint('project_id'),)
+
     def __repr__(self):
-        return f"Contract '{self.contract_name}'"
+        if self.is_draft:
+            status = 'draft'
+        elif self.is_active:
+            status = 'active'
+        elif self.is_approved:
+            status = 'approved'
+        return f"[Contract '{self.contract_name}', status - {status}]"
 
     @property
     def get_name(self):
@@ -43,7 +52,7 @@ class ProjectDBModel(Base):
                              uselist=True)
 
     def __repr__(self):
-        return f"Contract '{self.project_name}'"
+        return f"Project '{self.project_name}, linked with {self.contracts}'"
 
     def get_name(self):
         return self.project_name
