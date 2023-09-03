@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from .database import ContractDBModel, ProjectDBModel
+from src.database import ContractDBModel, ProjectDBModel
 
 
 class CRUDManager:
@@ -49,6 +49,12 @@ class CRUDManager:
         self.session.delete(record)
         self.session.commit()
         return 1
+
+    @property
+    def object_name(self):
+        if issubclass(self.model_class, ContractDBModel):
+            return 'contract'
+        return 'project'
 
 
 class ContractCRUDManager(CRUDManager):

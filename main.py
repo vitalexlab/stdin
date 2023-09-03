@@ -1,29 +1,13 @@
-# import click
-#
-#
-# @click.command()
-# @click.option(
-#     '--choice',
-#     prompt=STRATEGY_SELECTION,
-#     default=1
-# )
-# def choose_strategy(choice):
-#     chosen_strategy = None
-#     while chosen_strategy is None:
-#         if choice == 0:
-#             break
-#         elif choice == 1 or choice == 2:
-#             manager = StrategyManager(choice=choice)
-#             chosen_strategy = manager.get_strategy()
-#             click.echo(manager.get_echo())
-#         else:
-#             click.echo('Insert a correct answer')
-#             continue
-#     return chosen_strategy
-#
-#
-# if __name__ == '__main__':
-#     # run_loop()
-#     print('Hello from console program!')
-#     strategy = choose_strategy(standalone_mode=False)
-#     print(type(strategy))
+from src.event_loop.main_loop import MainLoop
+
+if __name__ == '__main__':
+    loop = MainLoop()
+    while True:
+        loop.run()
+        new_session = input(
+            'Start a new one? (Choose 1 to start and 0 to exit): '
+        )
+        if not bool(new_session) or new_session == '0':
+            print('See you!')
+            break
+        continue

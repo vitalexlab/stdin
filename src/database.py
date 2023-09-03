@@ -7,7 +7,7 @@ Base = declarative_base()
 
 db_name = 'orders.db'
 connection = 'sqlite:///{}'
-engine = create_engine(connection.format(db_name), echo=True)
+engine = create_engine(connection.format(db_name), echo=False)
 
 
 class ContractDBModel(Base):
@@ -24,6 +24,11 @@ class ContractDBModel(Base):
     project_id = Column('project_id', Integer,
                         ForeignKey('order_project.id_project'))
 
+    def __repr__(self):
+        return f"Contract '{self.contract_name}'"
+
+    def get_name(self):
+        return self.contract_name
 
 class ProjectDBModel(Base):
     __tablename__ = 'order_project'
@@ -34,6 +39,12 @@ class ProjectDBModel(Base):
     created_at = Column('created_at', DateTime, nullable=True)
     contracts = relationship("ContractDBModel", backref="project",
                              uselist=True)
+
+    def __repr__(self):
+        return f"Contract '{self.project_name}'"
+
+    def get_name(self):
+        return self.project_name
 
 
 Base.metadata.create_all(engine)

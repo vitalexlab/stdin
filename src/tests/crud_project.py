@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from src.database import engine, db_name
 
-from src.managers import ProjectCRUDManager
+from src.managers.db_managers import ProjectCRUDManager
 
 
 def delete_test_db(filename: str):
