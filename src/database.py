@@ -21,19 +21,17 @@ class ContractDBModel(Base):
     sign_at = Column('sign_at', DateTime, nullable=True)
     is_draft = Column('is_draft', Boolean, nullable=False, default=True)
     is_active = Column('is_active', Boolean, nullable=False, default=False)
-    is_finished = Column('is_approved', Boolean, nullable=False, default=False)
+    is_finished = Column('is_finished', Boolean, nullable=False, default=False)
     project_id = Column('project_id', Integer,
                         ForeignKey('order_project.id_project'))
-
-    __table_args__ = (UniqueConstraint('project_id'),)
 
     def __repr__(self):
         if self.is_draft:
             status = 'draft'
         elif self.is_active:
             status = 'active'
-        elif self.is_approved:
-            status = 'approved'
+        elif self.is_finished:
+            status = 'finished'
         return f"[Contract '{self.contract_name}', status - {status}]"
 
     @property

@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 import click
+from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
@@ -50,6 +51,12 @@ class StrategyBaseManager:
         return action
 
     def create(self):
+
+        if issubclass(self.model_class, ProjectDBModel):
+            if not self.check_active_contracts():
+                raise AttributeError(
+                    'Should be 1 more active contract to create a project'
+                )
         instance_name = input(
             f'Insert the name of a {self.manager.object_name}: '
         )
@@ -150,6 +157,9 @@ class StrategyBaseManager:
             except ValueError:
                 click.echo('Insert a correct answer')
                 continue
+            except AttributeError as ae:
+                print(ae)
+                break
 
 
 class StrategyContract(StrategyBaseManager):
@@ -160,12 +170,13 @@ class StrategyContract(StrategyBaseManager):
     def _run_change(self):
         print("Choose 1 to change name")
         print("Choose 2 to approve an existing contract")
-        print("Choose 3 to sign an existing contract")
+        print("Choose 3 to finish an existing contract")
+        print("Choose 4 to set a project to the contract")
         print("(Type 0 to finish)")
         change_choice = input("Your choice: ")
         if self._should_finish(change_choice):
             return False, None
-        elif int(change_choice) in [1, 2, 3]:
+        elif int(change_choice) in [1, 2, 3, 4]:
             return True, self._get_action(choice=int(change_choice))
         else:
             return None, None
@@ -178,21 +189,33 @@ class StrategyContract(StrategyBaseManager):
                 contract_name=contract_name
             )
             print(f"The contract '{contract_name}' was approved")
+            return action
         elif choice == 3:
             action = self.manager.sign_by_name(
                 contract_name=contract_name
             )
             print(f"The contract '{contract_name}' was signed")
-        print("You can add it to the projects")
-        return action
+            return action
+        elif choice == 4:
+            project_name = input("Insert valid project name: ")
+            try:
+                action = self.manager.set_contract_by_name(
+                        contract_name=contract_name,
+                        project_name=project_name
+                    )
+                print(f"The contract '{contract_name}' was set to"
+                      f" the project'{project_name}'")
+                return action
+            except IntegrityError:
+                print('A contract could be set to only one project')
+
 
     def _get_action(self, choice, contract_name=None):
         try:
             if choice == 1:
                 action = self._change_name()
-            elif choice == 2 or choice == 3:
+            elif choice > 1:
                 action = self._change_status(choice=choice, contract_name=None)
-            return action
         except AttributeError as ae:
             print(get_dashed())
             print('')
@@ -210,16 +233,24 @@ class StrategyProject(StrategyBaseManager):
     def __init__(self):
         self.model_class = ProjectDBModel
 
+    def check_active_contracts(self):
+        active_contract_count = self.session.query(
+            func.count(ContractDBModel.id_contract)).filter(
+            ContractDBModel.is_active == True
+        ).scalar()
+        if active_contract_count >= 1:
+            return True
+        return False
+
     def _run_change(self):
         print("Choose 1 to change name")
-        print("Choose 2 to set an active contract to the project")
-        print("Choose 3 to finish an active contract for the project")
+        print("Choose 2 to finish a contract for the project")
         print("(Type 0 to finish)")
         change_choice = input("Your choice: ")
 
         if self._should_finish(change_choice):
             return False, None
-        elif int(change_choice) in [1, 2, 3]:
+        elif int(change_choice) in [1, 2]:
             return True, self._get_action(choice=int(change_choice))
         else:
             return None, None
@@ -228,21 +259,21 @@ class StrategyProject(StrategyBaseManager):
         if contract_name is None:
             contract_name = input("Insert valid contract name: ")
         project_name = input("Insert valid project name: ")
+        # if choice == 2:
+        #     action = self.manager.set_contract_by_name(
+        #         contract_name=contract_name,
+        #         project_name=project_name
+        #     )
+        #     print(f"The contract '{contract_name}' was set to"
+        #           f" the project'{project_name}'")
         if choice == 2:
-            action = self.manager.set_contract_by_name(
-                contract_name=contract_name,
-                project_name=project_name
-            )
-            print(f"The contract '{contract_name}' was set to"
-                  f" the project'{project_name}'")
-        elif choice == 3:
             action = self.manager.finish_contract(
                 contract_name=contract_name,
                 project_name=project_name
             )
             print(f"The contract '{contract_name}' was finished for "
                   f"the project '{project_name}'")
-        return action
+            return action
 
     def _get_action(self, choice, contract_name=None):
         try:

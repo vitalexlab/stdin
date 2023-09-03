@@ -3,6 +3,7 @@ from typing import Type, Union
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from src.database import ContractDBModel, ProjectDBModel
 
@@ -40,7 +41,8 @@ class CRUDManager:
         return qs
 
     def get_all(self):
-        return self.session_query.all()
+        all_ = self.session_query.all()
+        return all_
 
     def change_name(self, old_name: str, new_name: str):
         instance = self.get_by_name(old_name)
@@ -97,13 +99,6 @@ class ContractCRUDManager(CRUDManager):
         self.session.close()
         return inst
 
-
-class ProjectCRUDManager(CRUDManager):
-    def __init__(self, db_session: Session):
-        super().__init__(db_session)
-        self.model_class = ProjectDBModel
-        self.session_query = self.session.query(self.model_class)
-
     def set_contract_by_name(self, contract_name: str, project_name: str):
         contract_instance: Type[ContractDBModel] = self.session.query(
             ContractDBModel
@@ -112,19 +107,30 @@ class ProjectCRUDManager(CRUDManager):
             raise AttributeError(
                 'Only active contracts could be used to link with projects'
             )
+        active_contract_count = self.session.query(
+            func.count(ContractDBModel.id_contract)).filter(
+            ContractDBModel.is_active == True,
+            ContractDBModel.project.has(
+                ProjectDBModel.project_name == project_name)
+        ).scalar()
+        if active_contract_count == 1:
+            raise AttributeError(
+                "Only one active contract should be in a project"
+            )
         project_record = self.session.query(ProjectDBModel).filter_by(
             project_name=project_name).one()
-        project_contracts_count = self.session.query(
-            ProjectDBModel,
-            func.count(ContractDBModel.id_contract).label('contract_count')
-        ).outerjoin(
-            ContractDBModel
-        ).group_by(
-            ProjectDBModel
-        ).having(func.count(ContractDBModel.id_contract) < 1)
         contract_instance.project = project_record
+        print(
+            f"Active Contract Count in '{project_name}': {active_contract_count}")
         self.session.commit()
         return contract_instance
+
+
+class ProjectCRUDManager(CRUDManager):
+    def __init__(self, db_session: Session):
+        super().__init__(db_session)
+        self.model_class = ProjectDBModel
+        self.session_query = self.session.query(self.model_class)
 
     def finish_contract(self, contract_name: str, project_name: str):
         inst = self.session_query.filter_by(project_name=project_name).one()
