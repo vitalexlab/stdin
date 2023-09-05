@@ -9,7 +9,7 @@ Base = declarative_base()
 
 db_name = 'orders.db'
 connection = 'sqlite:///{}'
-engine = create_engine(connection.format(db_name), echo=True)
+engine = create_engine(connection.format(db_name), echo=False)
 
 
 class ContractDBModel(Base):
