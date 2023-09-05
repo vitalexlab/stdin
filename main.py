@@ -1,6 +1,7 @@
 from src.event_loop.main_loop import MainLoop
 
 if __name__ == '__main__':
+    """Runs main loop"""
     loop = MainLoop()
     try:
         while True:

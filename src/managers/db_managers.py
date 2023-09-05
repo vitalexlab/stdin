@@ -63,41 +63,6 @@ class CRUDManager:
         self.session.commit()
         return 1
 
-    @property
-    def object_name(self):
-        if issubclass(self.model_class, ContractDBModel):
-            return 'contract'
-        return 'project'
-
-
-class ContractCRUDManager(CRUDManager):
-
-    def __init__(self, db_session: Session):
-        super().__init__(db_session)
-        self.model_class = ContractDBModel
-        self.session_query = self.session.query(self.model_class)
-
-    def approve_by_name(self, contract_name: str):
-        instance: Type[ContractDBModel] = self.session_query.filter_by(
-            contract_name=contract_name
-        ).one()
-        if instance.is_active or instance.is_finished:
-            raise AttributeError('Contract has already approved')
-        elif instance.is_draft:
-            instance.sign_at = datetime.now()
-            instance.is_draft, instance.is_active = False, True
-            self.session.commit()
-            self.session.close()
-        return instance
-
-    def sign_by_name(self, contract_name: str):
-        inst = self.session_query.filter_by(contract_name=contract_name).one()
-        inst.sign_at, inst.is_finished = datetime.now(), True
-        inst.is_active = False
-        self.session.commit()
-        self.session.close()
-        return inst
-
     def set_contract_by_name(self, contract_name: str, project_name: str):
         contract_instance: Type[ContractDBModel] = self.session.query(
             ContractDBModel
@@ -125,8 +90,60 @@ class ContractCRUDManager(CRUDManager):
         self.session.commit()
         return contract_instance
 
+    @property
+    def object_name(self):
+        if issubclass(self.model_class, ContractDBModel):
+            return 'contract'
+        return 'project'
+
+
+class ContractCRUDManager(CRUDManager):
+
+    """The child of the CRUDManager
+
+    A custom init method creates an instance with the ContractDBModel
+    as a db model
+    Add approve_by_name, sign_by_nam methods
+    to manage contracts
+    """
+
+    def __init__(self, db_session: Session):
+        super().__init__(db_session)
+        self.model_class = ContractDBModel
+        self.session_query = self.session.query(self.model_class)
+
+    def approve_by_name(self, contract_name: str):
+        instance: Type[ContractDBModel] = self.session_query.filter_by(
+            contract_name=contract_name
+        ).one()
+        if instance.is_active or instance.is_finished:
+            raise AttributeError('Contract has already approved')
+        elif instance.is_draft:
+            instance.sign_at = datetime.now()
+            instance.is_draft, instance.is_active = False, True
+            self.session.commit()
+            self.session.close()
+        return instance
+
+    def sign_by_name(self, contract_name: str):
+        inst = self.session_query.filter_by(contract_name=contract_name).one()
+        inst.sign_at, inst.is_finished = datetime.now(), True
+        inst.is_active = False
+        self.session.commit()
+        self.session.close()
+        return inst
+
 
 class ProjectCRUDManager(CRUDManager):
+
+    """The child of the CRUDManager
+
+    A custom init method creates an instance with the ProjectDBModel
+    as a db model
+    Add approve_by_name, sign_by_name and tract_by_name methods
+    to manage contracts
+    """
+
     def __init__(self, db_session: Session):
         super().__init__(db_session)
         self.model_class = ProjectDBModel

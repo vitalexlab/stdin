@@ -1,6 +1,5 @@
 from abc import abstractmethod
 
-import click
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -11,6 +10,12 @@ from src.utils import get_dashed
 
 
 class StrategyBaseManager:
+
+    """Base manager for ContractStrategy and ProjectStratagy
+
+     It is made to run strategy depended on is it a contract or project.
+     CRUD operations are implemented
+     """
 
     def _should_finish(self, choice) -> bool:
         if choice is None or choice == '0':
@@ -29,6 +34,12 @@ class StrategyBaseManager:
     @abstractmethod
     def _change_status(self, choice: int, contract_name=None):
         pass
+
+    def _run_change_menu(self) -> str:
+        for choice in self.choices_to_print:
+            print(choice)
+        chosen_variant = input(self.menu_input_text)
+        return chosen_variant
 
     def _get_db_session(self):
         return sessionmaker(bind=engine)()
@@ -68,10 +79,8 @@ class StrategyBaseManager:
             self.session.refresh(self.instance)
             return self.instance
         except IntegrityError:
-            print('')
-            print(f"The {self.manager.object_name} with the name "
-                  f"'{instance_name}' already exists! Aborting!!!")
-            print('')
+            print(f"\nThe {self.manager.object_name} with the name "
+                  f"'{instance_name}' already exists! Aborting!!!\n")
 
     def get_by_name(self):
         while True:
@@ -85,9 +94,8 @@ class StrategyBaseManager:
                 print(instance)
                 return instance
             except NoResultFound:
-                print('')
-                print('Sorry, there is not any objects with such name')
-                print('')
+                print('\nSorry, there is not any objects '
+                      'with such name.Try again.\n')
 
     def get_all(self):
         queryset = self.manager.get_all()
@@ -111,12 +119,11 @@ class StrategyBaseManager:
         object_name = input(inter_str)
         try:
             self.manager.remove_by_name(query_name=object_name)
-            print(f"{self.manager.object_name.capitalize()} with "
-                  f"name {object_name} was deleted")
+            print(f"\n{self.manager.object_name.capitalize()} with "
+                  f"name {object_name} was deleted\n")
         except NoResultFound:
             print(get_dashed())
-            print('')
-            print(f"No {self.manager.object_name} was found to delete")
+            print(f"\nNo {self.manager.object_name} was found to delete.\n")
 
     def _run_action_by_choice(self, choice: int):
         choices_actions = {
@@ -138,8 +145,7 @@ class StrategyBaseManager:
             'Please, choose 1 if you want to create a '
             f'{self.manager.object_name}, 2 - to get '
             'an existing one by name, 3 - to get it all, 4 - to change, '
-            '5 - to delete. Choose 0 to '
-            'finish. Your choice: ')
+            '5 - to delete. Choose 0 to finish. Your choice: ')
         print(get_dashed())
         while True:
             try:
@@ -149,14 +155,14 @@ class StrategyBaseManager:
                 elif 5 >= action >= 1:
                     self._run_action_by_choice(choice=action)
                     self.session.close()
-                    print('Console program session have finished!')
-                    print(get_dashed())
+                    print(f'Console program session '
+                          f'have finished!\n{get_dashed()}')
                     break
                 else:
-                    click.echo('Insert a correct answer')
+                    print('Insert a correct answer')
                     continue
             except ValueError:
-                click.echo('Insert a correct answer')
+                print('Insert a correct answer')
                 continue
             except AttributeError as ae:
                 print(ae)
@@ -165,16 +171,26 @@ class StrategyBaseManager:
 
 class StrategyContract(StrategyBaseManager):
 
+    """A child of a base manager
+
+    Implements custom methods to add functionality:
+
+
+    """
+
     def __init__(self):
         self.model_class = ContractDBModel
+        self.choices_to_print = [
+            "Choose 1 to change name",
+            "Choose 2 to approve an existing contract",
+            "Choose 3 to finish an existing contract",
+            "Choose 4 to set a project to the contract",
+            "(Type 0 to finish)",
+        ]
+        self.menu_input_text = "Your choice: "
 
     def _run_change(self):
-        print("Choose 1 to change name")
-        print("Choose 2 to approve an existing contract")
-        print("Choose 3 to finish an existing contract")
-        print("Choose 4 to set a project to the contract")
-        print("(Type 0 to finish)")
-        change_choice = input("Your choice: ")
+        change_choice = self._run_change_menu()
         if self._should_finish(change_choice):
             return False, None
         elif int(change_choice) in [1, 2, 3, 4]:
@@ -218,21 +234,23 @@ class StrategyContract(StrategyBaseManager):
                 action = self._change_status(choice=choice, contract_name=None)
             return action
         except AttributeError as ae:
-            print(get_dashed())
-            print('')
-            print(ae)
-            print("Aborting!")
+            print(f"\n{get_dashed()}\n{ae}\nAborting!")
         except NoResultFound:
-            print(get_dashed())
-            print('')
-            print("There is not a contract or project with such name!"
-                  " Aborting!")
+            print("\n{get_dashed()}\nThere is not a contract or project with "
+                  "such name! Aborting!")
 
 
 class StrategyProject(StrategyBaseManager):
 
     def __init__(self):
         self.model_class = ProjectDBModel
+        self.choices_to_print = [
+            "Choose 1 to change name",
+            "Choose 2 to finish a contract for the project",
+            "Choose 3 to set contract to the project"
+            "(Type 0 to finish)",
+        ]
+        self.menu_input_text = "Your choice: "
 
     def check_active_contracts(self):
         active_contract_count = self.session.query(
@@ -244,14 +262,10 @@ class StrategyProject(StrategyBaseManager):
         return False
 
     def _run_change(self):
-        print("Choose 1 to change name")
-        print("Choose 2 to finish a contract for the project")
-        print("(Type 0 to finish)")
-        change_choice = input("Your choice: ")
-
+        change_choice = self._run_change_menu()
         if self._should_finish(change_choice):
             return False, None
-        elif int(change_choice) in [1, 2]:
+        elif int(change_choice) in [1, 2, 3]:
             return True, self._get_action(choice=int(change_choice))
         else:
             return None, None
@@ -260,13 +274,13 @@ class StrategyProject(StrategyBaseManager):
         if contract_name is None:
             contract_name = input("Insert valid contract name: ")
         project_name = input("Insert valid project name: ")
-        # if choice == 2:
-        #     action = self.manager.set_contract_by_name(
-        #         contract_name=contract_name,
-        #         project_name=project_name
-        #     )
-        #     print(f"The contract '{contract_name}' was set to"
-        #           f" the project'{project_name}'")
+        if choice == 3:
+            action = self.manager.set_contract_by_name(
+                contract_name=contract_name,
+                project_name=project_name
+            )
+            print(f"The contract '{contract_name}' was set to"
+                  f" the project'{project_name}'")
         if choice == 2:
             action = self.manager.finish_contract(
                 contract_name=contract_name,
@@ -274,7 +288,7 @@ class StrategyProject(StrategyBaseManager):
             )
             print(f"The contract '{contract_name}' was finished for "
                   f"the project '{project_name}'")
-            return action
+        return action
 
     def _get_action(self, choice, contract_name=None):
         try:
@@ -284,12 +298,7 @@ class StrategyProject(StrategyBaseManager):
                 action = self._change_status(choice=choice)
             return action
         except AttributeError as ae:
-            print(get_dashed())
-            print('')
-            print(ae)
-            print("Aborting!")
+            print(f"\n{get_dashed()}\n{ae}\nAborting!")
         except NoResultFound:
-            print(get_dashed())
-            print('')
-            print("There is not a contract or project with such name!"
-                  " Aborting!")
+            print("such name!\nThere is not a contract or project with "
+                  "such name! Aborting!")

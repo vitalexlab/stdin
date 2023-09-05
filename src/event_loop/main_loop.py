@@ -1,5 +1,3 @@
-import click
-
 from src.managers.strategies import StrategyContract, StrategyProject
 from src.utils import get_dashed
 
@@ -8,10 +6,12 @@ STRATEGY_SELECTION = ('Please, chose 1 for running a work with Contracts, '
 
 
 class MainLoop:
-    """Main event loop for """
+    """Main event loop for the all actions"""
 
     @staticmethod
     def _get_manager_by_choice(choice: int):
+        """Returns manager dependened on the choice"""
+
         return StrategyContract if choice == 1 else StrategyProject
 
     def _choose_strategy(self):
@@ -29,19 +29,16 @@ class MainLoop:
                     manager = self._get_manager_by_choice(choice=choice)
                     return manager()
                 else:
-                    click.echo(negative_answer)
+                    print(negative_answer)
                     continue
             except ValueError:
-                click.echo(negative_answer)
+                print(negative_answer)
                 continue
 
     @staticmethod
     def _greeting():
-        print('')
-        print(get_dashed())
-        click.echo('Hello from console program!')
-        print(get_dashed())
-        print('')
+        print(f"{get_dashed()}\n\nHello from the "
+              f"console program!\n\n{get_dashed()}")
 
     def run(self):
         try:
