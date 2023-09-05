@@ -1,4 +1,4 @@
-from src.managers.strategies import StrategyContract, StrategyProject
+from src.managers.strategy.strategies import StrategyContract, StrategyProject
 from src.utils import get_dashed
 
 STRATEGY_SELECTION = ('Please, chose 1 for running a work with Contracts, '
@@ -20,9 +20,7 @@ class MainLoop:
         while True:
             try:
                 choice: int = int(input(STRATEGY_SELECTION))
-                print(get_dashed())
-                print(get_dashed())
-
+                print(f"{get_dashed()}\n{get_dashed()}")
                 if choice == 0:
                     break
                 elif choice == 1 or choice == 2:
